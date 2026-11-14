@@ -1,0 +1,17 @@
+{
+  "name": "smartbox-measure",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "description": "SmartBox Measure - Live depth measurement",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "test": "node --test tests/geometry.test.mjs"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^1.1.0",
+    "vite": "^5.4.0"
+  }
+}

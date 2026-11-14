@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a1628" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>SmartBox Measure</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f7bff'/%3E%3Cpath d='M8 12l8-4 8 4v9l-8 4-8-4z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <div id="app">
+    <!-- 1. Header -->
+    <header class="app-header">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+          <rect width="32" height="32" rx="7" fill="#2f7bff" />
+          <path d="M8 12l8-4 8 4v9l-8 4-8-4z M8 12l8 4 8-4 M16 16v9" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round" />
+        </svg>
+        <div>
+          <h1>SmartBox Measure</h1>
+          <p class="subtitle">ระบบสแกนขนาดพัสดุ · Parcel Dimension Scanner</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="version" id="appVersion">v0.3.0</span>
+        <span class="pill" id="deviceBadge">กำลังตรวจสอบ…</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- 2. Device Status -->
+      <section class="card" aria-labelledby="h-device">
+        <h2 id="h-device">สถานะอุปกรณ์ <small>Device Status</small></h2>
+        <dl class="status-grid" id="deviceStatus"></dl>
+      </section>
+
+      <!-- 2.5 Live Measure (WebXR Depth) -->
+      <section class="card" aria-labelledby="h-live">
+        <h2 id="h-live">วัดสดแบบเรียลไทม์ <small>Live Measure · ไม่ต้องถ่ายภาพ</small></h2>
+        <p class="camera-info">เล็งวัตถุที่วางบนโต๊ะให้อยู่กลางจอ ระบบจำแนกรูปทรง (กล่อง ซอง ถุง ทรงกระบอก รูปทรงอิสระ) วาดกล่องครอบ และแสดงขนาดทันที (ต้องใช้ Android Chrome ที่รองรับ ARCore Depth)</p>
+        <p class="camera-info" id="liveSupport">กำลังตรวจสอบ…</p>
+        <button class="btn primary" id="btnLive" type="button" disabled>เริ่มวัดแบบสด</button>
+      </section>
+
+      <!-- 3. Camera Scanner -->
+      <section class="card" aria-labelledby="h-camera">
+        <h2 id="h-camera">กล้องสแกน <small>Camera Scanner</small></h2>
+
+        <div class="viewport" id="viewport">
+          <video id="video" playsinline muted autoplay></video>
+          <div class="guide" id="guide" hidden>
+            <div class="guide-frame"></div>
+            <div class="guide-text" id="guideText"></div>
+          </div>
+          <div class="viewport-empty" id="viewportEmpty">
+            <p>กดปุ่ม “เปิดกล้อง” เพื่อเริ่มสแกน</p>
+          </div>
+          <div class="flash" id="flash"></div>
+        </div>
+
+        <p class="camera-info" id="cameraInfo" aria-live="polite"></p>
+
+        <div class="btn-row">
+          <button class="btn primary" id="btnStart" type="button">เปิดกล้อง</button>
+          <button class="btn" id="btnStop" type="button" disabled>ปิดกล้อง</button>
+          <button class="btn" id="btnSwitch" type="button" disabled hidden>สลับกล้อง</button>
+        </div>
+
+        <!-- 4. Scan Workflow -->
+        <h3 class="sub">ขั้นตอนการสแกน <small>Scan Workflow</small></h3>
+        <div class="tabs" id="modeTabs" role="tablist"></div>
+        <div class="progress" aria-label="ความคืบหน้า"><div class="progress-bar" id="progressBar"></div></div>
+        <p class="progress-text" id="progressText"></p>
+
+        <button class="btn capture" id="btnCapture" type="button" disabled>
+          <span class="shutter"></span><span id="captureLabel">ถ่ายภาพ</span>
+        </button>
+      </section>
+
+      <!-- 5. Image Preview -->
+      <section class="card" aria-labelledby="h-preview">
+        <div class="card-head">
+          <h2 id="h-preview">ภาพที่บันทึก <small>Image Preview · <span id="imageCount">0</span> ภาพ</small></h2>
+          <button class="btn danger small" id="btnReset" type="button" disabled>เริ่มสแกนใหม่</button>
+        </div>
+        <div class="gallery" id="gallery"></div>
+        <p class="empty" id="galleryEmpty">ยังไม่มีภาพ</p>
+      </section>
+
+      <!-- 6 + 7. Measurement Result / Classification -->
+      <section class="card" aria-labelledby="h-result">
+        <h2 id="h-result">ผลการวัด <small>Measurement Result</small></h2>
+        <div id="result"></div>
+      </section>
+    </main>
+
+    <!-- 8. Footer -->
+    <footer class="app-footer">
+      <span>SmartBox Measure · <span id="footVersion">v0.3.0</span> · Live Depth Measure</span>
+      <span id="sysInfo"></span>
+    </footer>
+
+    <!-- HUD สำหรับ WebXR DOM overlay -->
+    <div id="arOverlay" class="ar-overlay" hidden style="display:none">
+      <div class="ar-top">
+        <span id="arStatus" class="ar-status">กำลังเริ่ม…</span>
+        <button class="btn small" id="arClose" type="button">ปิด</button>
+      </div>
+      <div class="ar-cross" aria-hidden="true"></div>
+      <div class="ar-panel">
+        <div class="ar-shape">
+          <label for="arShape">รูปทรง</label>
+          <select id="arShape">
+            <option value="auto">อัตโนมัติ</option>
+            <option value="box">กล่องสี่เหลี่ยม</option>
+            <option value="envelope">ซองไปรษณีย์</option>
+            <option value="bag">ถุงพัสดุ</option>
+            <option value="cylinder">ทรงกระบอก</option>
+            <option value="irregular">รูปทรงอิสระ</option>
+          </select>
+          <span id="arShapeNow" class="ar-meta"></span>
+        </div>
+        <div class="ar-dims">
+          <div><span id="arLLab">ยาว Length</span><b><i id="arL">—</i> cm</b></div>
+          <div><span id="arWLab">กว้าง Width</span><b><i id="arW">—</i> cm</b></div>
+          <div><span id="arHLab">สูง Height</span><b><i id="arH">—</i> cm</b></div>
+        </div>
+        <p id="arMeta" class="ar-meta"></p>
+        <div class="btn-row">
+          <button class="btn small" id="arResetAcc" type="button">เริ่มเก็บมุมใหม่</button>
+          <button class="btn primary" id="arSave" type="button" disabled>บันทึกค่า</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast-host" id="toastHost" aria-live="assertive"></div>
+
+    <dialog id="viewer" class="viewer">
+      <img id="viewerImg" alt="ภาพขยาย" />
+      <button class="btn small" id="viewerClose" type="button">ปิด</button>
+    </dialog>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
